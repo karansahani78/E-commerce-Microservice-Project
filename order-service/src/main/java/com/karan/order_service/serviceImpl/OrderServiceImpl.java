@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,24 +29,34 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDTO placeOrder(OrderDTO orderDTO) {
         WebClient webClient = webClientBuilder.build(); // Build WebClient instance
+        // to collect the skuCodes that are out of stock
+        try {
+            List<String> outOfStockItems = new ArrayList<>();
 
-        // Check if all items are in stock
-        boolean allItemsInStock = orderDTO.getOrderLineItems().stream()
-                .allMatch(item -> {
-                    try {
+            // Check if all items are in stock
+            boolean allItemsInStock = orderDTO.getOrderLineItems().stream()
+                    .allMatch(item -> {
                         Boolean isInStock = webClient.get()
                                 .uri("http://INVENTORY-SERVICE/api/inventory/stock/{skuCode}", item.getSkuCode()) // Eureka service discovery
                                 .retrieve()
                                 .bodyToMono(Boolean.class)
                                 .toFuture().join(); // Non-blocking alternative to .block()
-                        return Boolean.TRUE.equals(isInStock);
-                    } catch (Exception e) {
-                        throw new RuntimeException("Error checking stock for SKU: " + item.getSkuCode(), e);
-                    }
-                });
 
-        if (!allItemsInStock) {
-            throw new OutOfStockException("One or more items are out of stock!");
+                        if (!Boolean.TRUE.equals(isInStock)) {
+                            outOfStockItems.add(item.getSkuCode()); // Collect out-of-stock SKU codes
+                        }
+
+                        return Boolean.TRUE.equals(isInStock);
+                    });
+
+            if (!allItemsInStock) {
+                if (!allItemsInStock) {
+                    throw new OutOfStockException("Some items are out of stock: " + outOfStockItems);
+                }
+
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error checking stock availability", e);
         }
 
         // Convert DTO to Entity
