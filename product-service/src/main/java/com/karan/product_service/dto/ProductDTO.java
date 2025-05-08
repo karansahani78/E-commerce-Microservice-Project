@@ -1,10 +1,11 @@
 package com.karan.product_service.dto;
 import lombok.*;
 import java.math.BigDecimal;
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
 
 public class ProductDTO {
