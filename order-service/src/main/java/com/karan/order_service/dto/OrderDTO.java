@@ -18,6 +18,7 @@ public class OrderDTO {
     private String orderNumber;
 
     private OrderStatus orderStatus; // Enum for Order Status
+    private String message;
 
     @NotEmpty(message = "Order must contain at least one item")
     private List<OrderLineItemsDTO> orderLineItems;
